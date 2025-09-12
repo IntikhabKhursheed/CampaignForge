@@ -164,9 +164,10 @@ export default function Contacts() {
     const matchesStatus = filterStatus === "all" || contact.status === filterStatus;
     
     let matchesScore = true;
-    if (filterScore === "hot") matchesScore = contact.leadScore >= 80;
-    else if (filterScore === "warm") matchesScore = contact.leadScore >= 60 && contact.leadScore < 80;
-    else if (filterScore === "cold") matchesScore = contact.leadScore < 60;
+    const score = contact.leadScore || 0;
+    if (filterScore === "hot") matchesScore = score >= 80;
+    else if (filterScore === "warm") matchesScore = score >= 60 && score < 80;
+    else if (filterScore === "cold") matchesScore = score < 60;
     
     return matchesSearch && matchesStatus && matchesScore;
   }) || [];
@@ -176,6 +177,7 @@ export default function Contacts() {
     form.reset({
       ...contact,
       tags: contact.tags || [],
+      leadScore: contact.leadScore || 0,
     });
     setIsDialogOpen(true);
   };
@@ -194,7 +196,7 @@ export default function Contacts() {
     }
   };
 
-  const leadScores = metrics?.leadScores || { hot: 0, warm: 0, cold: 0 };
+  const leadScores = (metrics as any)?.leadScores || { hot: 0, warm: 0, cold: 0 };
   const total = leadScores.hot + leadScores.warm + leadScores.cold;
 
   if (isLoading) {
@@ -342,7 +344,7 @@ export default function Contacts() {
         {/* Contacts List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredContacts.map((contact) => {
-            const scoreBadge = getLeadScoreBadge(contact.leadScore);
+            const scoreBadge = getLeadScoreBadge(contact.leadScore || 0);
             return (
               <Card key={contact.id} className="hover:shadow-md transition-shadow" data-testid={`contact-card-${contact.id}`}>
                 <CardHeader>
@@ -361,8 +363,8 @@ export default function Contacts() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`text-lg font-bold ${getLeadScoreColor(contact.leadScore)}`} data-testid={`contact-score-${contact.id}`}>
-                        {contact.leadScore}
+                      <span className={`text-lg font-bold ${getLeadScoreColor(contact.leadScore || 0)}`} data-testid={`contact-score-${contact.id}`}>
+                        {contact.leadScore || 0}
                       </span>
                       <p className="text-xs text-muted-foreground">Score</p>
                     </div>
@@ -533,7 +535,7 @@ export default function Contacts() {
                     <FormItem>
                       <FormLabel>Phone</FormLabel>
                       <FormControl>
-                        <Input placeholder="+1-555-0123" {...field} data-testid="input-phone" />
+                        <Input placeholder="+1-555-0123" {...field} value={field.value || ""} data-testid="input-phone" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -570,7 +572,7 @@ export default function Contacts() {
                     <FormItem>
                       <FormLabel>Company</FormLabel>
                       <FormControl>
-                        <Input placeholder="Acme Inc." {...field} data-testid="input-company" />
+                        <Input placeholder="Acme Inc." {...field} value={field.value || ""} data-testid="input-company" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -583,7 +585,7 @@ export default function Contacts() {
                     <FormItem>
                       <FormLabel>Position</FormLabel>
                       <FormControl>
-                        <Input placeholder="CEO" {...field} data-testid="input-position" />
+                        <Input placeholder="CEO" {...field} value={field.value || ""} data-testid="input-position" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -622,7 +624,7 @@ export default function Contacts() {
                     <FormItem>
                       <FormLabel>Source</FormLabel>
                       <FormControl>
-                        <Input placeholder="Campaign ID or source" {...field} data-testid="input-source" />
+                        <Input placeholder="Campaign ID or source" {...field} value={field.value || ""} data-testid="input-source" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -640,6 +642,7 @@ export default function Contacts() {
                       <Textarea 
                         placeholder="Additional notes about this contact..." 
                         {...field} 
+                        value={field.value || ""}
                         data-testid="textarea-notes"
                       />
                     </FormControl>

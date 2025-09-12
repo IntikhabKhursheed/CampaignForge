@@ -59,7 +59,7 @@ export default function RecentActivities() {
                     {activity.title}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1" data-testid={`activity-description-${activity.id}`}>
-                    {activity.description} • {new Date(activity.createdAt).toLocaleTimeString()}
+                    {activity.description} • {activity.createdAt ? new Date(activity.createdAt).toLocaleTimeString() : 'No date'}
                   </p>
                 </div>
               </div>

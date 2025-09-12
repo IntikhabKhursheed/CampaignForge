@@ -606,6 +606,7 @@ export default function Tasks() {
                       <Textarea 
                         placeholder="Describe the task details..." 
                         {...field} 
+                        value={field.value || ""}
                         data-testid="textarea-task-description"
                       />
                     </FormControl>
@@ -670,7 +671,7 @@ export default function Tasks() {
                     <FormItem>
                       <FormLabel>Assigned To</FormLabel>
                       <FormControl>
-                        <Input placeholder="Team member name" {...field} data-testid="input-assigned-to" />
+                        <Input placeholder="Team member name" {...field} value={field.value || ""} data-testid="input-assigned-to" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -683,7 +684,7 @@ export default function Tasks() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-task-category">
+                      <Select onValueChange={field.onChange} defaultValue={field.value || undefined} data-testid="select-task-category">
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select category" />

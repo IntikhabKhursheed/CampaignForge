@@ -71,11 +71,20 @@ export default function Analytics() {
   }
 
   // Calculate analytics
-  const totalLeads = campaigns?.reduce((sum, c) => sum + (c.metrics?.leads || 0), 0) || 0;
-  const totalConversions = campaigns?.reduce((sum, c) => sum + (c.metrics?.conversions || 0), 0) || 0;
+  const totalLeads = campaigns?.reduce((sum, c) => {
+    const metrics = c.metrics as any;
+    return sum + (metrics?.leads || 0);
+  }, 0) || 0;
+  const totalConversions = campaigns?.reduce((sum, c) => {
+    const metrics = c.metrics as any;
+    return sum + (metrics?.conversions || 0);
+  }, 0) || 0;
   const avgConversionRate = totalLeads > 0 ? ((totalConversions / totalLeads) * 100).toFixed(1) : "0.0";
-  const avgROI = campaigns?.length > 0 
-    ? Math.round(campaigns.reduce((sum, c) => sum + (c.metrics?.roi || 0), 0) / campaigns.length)
+  const avgROI = (campaigns?.length || 0) > 0 
+    ? Math.round((campaigns || []).reduce((sum, c) => {
+        const metrics = c.metrics as any;
+        return sum + (metrics?.roi || 0);
+      }, 0) / (campaigns?.length || 1))
     : 0;
   const estimatedRevenue = totalConversions * 300; // Assuming $300 per conversion
 
@@ -85,8 +94,9 @@ export default function Analytics() {
   }, {} as Record<string, number>) || {};
 
   const leadsByScore = contacts?.reduce((acc, contact) => {
-    if (contact.leadScore >= 80) acc.hot++;
-    else if (contact.leadScore >= 60) acc.warm++;
+    const score = contact.leadScore || 0;
+    if (score >= 80) acc.hot++;
+    else if (score >= 60) acc.warm++;
     else acc.cold++;
     return acc;
   }, { hot: 0, warm: 0, cold: 0 }) || { hot: 0, warm: 0, cold: 0 };
@@ -361,7 +371,7 @@ export default function Analytics() {
                 </h3>
                 <p className="text-sm text-muted-foreground">Hot Leads (80-100)</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {contacts?.length > 0 ? Math.round((leadsByScore.hot / contacts.length) * 100) : 0}% of total
+                  {(contacts?.length || 0) > 0 ? Math.round((leadsByScore.hot / (contacts?.length || 1)) * 100) : 0}% of total
                 </p>
               </div>
 
@@ -374,7 +384,7 @@ export default function Analytics() {
                 </h3>
                 <p className="text-sm text-muted-foreground">Warm Leads (60-79)</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {contacts?.length > 0 ? Math.round((leadsByScore.warm / contacts.length) * 100) : 0}% of total
+                  {(contacts?.length || 0) > 0 ? Math.round((leadsByScore.warm / (contacts?.length || 1)) * 100) : 0}% of total
                 </p>
               </div>
 
@@ -387,7 +397,7 @@ export default function Analytics() {
                 </h3>
                 <p className="text-sm text-muted-foreground">Cold Leads (0-59)</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {contacts?.length > 0 ? Math.round((leadsByScore.cold / contacts.length) * 100) : 0}% of total
+                  {(contacts?.length || 0) > 0 ? Math.round((leadsByScore.cold / (contacts?.length || 1)) * 100) : 0}% of total
                 </p>
               </div>
             </div>

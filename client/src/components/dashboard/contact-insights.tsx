@@ -31,8 +31,8 @@ export default function ContactInsights() {
     );
   }
 
-  const hotLeads = contacts?.filter(c => c.leadScore >= 80).slice(0, 2) || [];
-  const leadScores = metrics?.leadScores || { hot: 0, warm: 0, cold: 0 };
+  const hotLeads = contacts?.filter(c => (c.leadScore || 0) >= 80).slice(0, 2) || [];
+  const leadScores = (metrics as any)?.leadScores || { hot: 0, warm: 0, cold: 0 };
   const total = leadScores.hot + leadScores.warm + leadScores.cold;
 
   return (

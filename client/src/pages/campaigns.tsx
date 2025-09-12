@@ -160,19 +160,19 @@ export default function Campaigns() {
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-2xl font-semibold text-foreground" data-testid={`campaign-leads-${campaign.id}`}>
-                        {campaign.metrics?.leads?.toLocaleString() || 0}
+                        {((campaign.metrics as any)?.leads)?.toLocaleString() || 0}
                       </p>
                       <p className="text-xs text-muted-foreground">Leads</p>
                     </div>
                     <div>
                       <p className="text-2xl font-semibold text-foreground" data-testid={`campaign-conversions-${campaign.id}`}>
-                        {campaign.metrics?.conversions || 0}
+                        {(campaign.metrics as any)?.conversions || 0}
                       </p>
                       <p className="text-xs text-muted-foreground">Conversions</p>
                     </div>
                     <div>
                       <p className="text-2xl font-semibold text-accent" data-testid={`campaign-roi-${campaign.id}`}>
-                        {campaign.metrics?.roi || 0}%
+                        {(campaign.metrics as any)?.roi || 0}%
                       </p>
                       <p className="text-xs text-muted-foreground">ROI</p>
                     </div>
@@ -195,7 +195,7 @@ export default function Campaigns() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Created:</span>
                       <span className="text-foreground" data-testid={`campaign-created-${campaign.id}`}>
-                        {new Date(campaign.createdAt).toLocaleDateString()}
+                        {campaign.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : 'No date'}
                       </span>
                     </div>
                   </div>

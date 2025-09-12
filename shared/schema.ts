@@ -3,6 +3,34 @@ import { pgTable, text, varchar, integer, boolean, timestamp, jsonb } from "driz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Metrics schemas
+export const campaignMetricsSchema = z.object({
+  leads: z.number().default(0),
+  conversions: z.number().default(0),
+  roi: z.number().default(0),
+});
+
+export const dashboardMetricsSchema = z.object({
+  activeCampaigns: z.number(),
+  totalLeads: z.number(),
+  conversionRate: z.string(),
+  roi: z.string(),
+  leadScores: z.object({
+    hot: z.number(),
+    warm: z.number(),
+    cold: z.number(),
+  }),
+  growth: z.object({
+    campaigns: z.string(),
+    leads: z.string(),
+    conversions: z.string(),
+    roi: z.string(),
+  }),
+});
+
+export type CampaignMetrics = z.infer<typeof campaignMetricsSchema>;
+export type DashboardMetrics = z.infer<typeof dashboardMetricsSchema>;
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -25,7 +53,7 @@ export const campaigns = pgTable("campaigns", {
   createdAt: timestamp("created_at").default(sql`now()`),
   updatedAt: timestamp("updated_at").default(sql`now()`),
   userId: varchar("user_id").notNull(),
-  metrics: jsonb("metrics").default({}), // leads, conversions, roi, etc.
+  metrics: jsonb("metrics").default({})
 });
 
 export const contacts = pgTable("contacts", {

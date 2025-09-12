@@ -265,7 +265,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      role: insertUser.role || "founder"
+    };
     this.users.set(id, user);
     return user;
   }
@@ -288,7 +292,13 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: now, 
       updatedAt: now,
-      metrics: campaign.metrics || {}
+      metrics: campaign.metrics || {},
+      description: campaign.description || null,
+      targetAudience: campaign.targetAudience || null,
+      budget: campaign.budget || null,
+      startDate: campaign.startDate || null,
+      endDate: campaign.endDate || null,
+      status: campaign.status || "draft"
     };
     this.campaigns.set(id, newCampaign);
     return newCampaign;
@@ -328,7 +338,14 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: now, 
       updatedAt: now,
-      tags: contact.tags || []
+      tags: contact.tags || [],
+      status: contact.status || "new",
+      phone: contact.phone || null,
+      company: contact.company || null,
+      position: contact.position || null,
+      leadScore: contact.leadScore || 0,
+      source: contact.source || null,
+      notes: contact.notes || null
     };
     this.contacts.set(id, newContact);
     return newContact;
@@ -363,7 +380,19 @@ export class MemStorage implements IStorage {
   async createTask(task: InsertTask): Promise<Task> {
     const id = randomUUID();
     const now = new Date();
-    const newTask: Task = { ...task, id, createdAt: now, updatedAt: now };
+    const newTask: Task = { 
+      ...task, 
+      id, 
+      createdAt: now, 
+      updatedAt: now,
+      description: task.description || null,
+      priority: task.priority || "medium",
+      status: task.status || "todo",
+      dueDate: task.dueDate || null,
+      assignedTo: task.assignedTo || null,
+      category: task.category || null,
+      campaignId: task.campaignId || null
+    };
     this.tasks.set(id, newTask);
     return newTask;
   }
@@ -388,7 +417,11 @@ export class MemStorage implements IStorage {
   async getActivities(userId: string, limit = 10): Promise<Activity[]> {
     const userActivities = Array.from(this.activities.values())
       .filter(activity => activity.userId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .sort((a, b) => {
+        const aTime = a.createdAt ? a.createdAt.getTime() : 0;
+        const bTime = b.createdAt ? b.createdAt.getTime() : 0;
+        return bTime - aTime;
+      })
       .slice(0, limit);
     
     return userActivities;
@@ -399,7 +432,9 @@ export class MemStorage implements IStorage {
     const newActivity: Activity = { 
       ...activity, 
       id, 
-      createdAt: activity.createdAt || new Date() 
+      createdAt: new Date(),
+      description: activity.description || null,
+      metadata: activity.metadata || {}
     };
     this.activities.set(id, newActivity);
     return newActivity;
@@ -413,16 +448,25 @@ export class MemStorage implements IStorage {
 
     const activeCampaigns = campaigns.filter(c => c.status === 'active');
     const totalLeads = contacts.length;
-    const hotLeads = contacts.filter(c => c.leadScore >= 80).length;
-    const warmLeads = contacts.filter(c => c.leadScore >= 60 && c.leadScore < 80).length;
-    const coldLeads = contacts.filter(c => c.leadScore < 60).length;
+    const hotLeads = contacts.filter(c => (c.leadScore || 0) >= 80).length;
+    const warmLeads = contacts.filter(c => (c.leadScore || 0) >= 60 && (c.leadScore || 0) < 80).length;
+    const coldLeads = contacts.filter(c => (c.leadScore || 0) < 60).length;
 
-    const totalConversions = campaigns.reduce((sum, c) => sum + (c.metrics?.conversions || 0), 0);
-    const totalCampaignLeads = campaigns.reduce((sum, c) => sum + (c.metrics?.leads || 0), 0);
+    const totalConversions = campaigns.reduce((sum, c) => {
+      const metrics = c.metrics as any;
+      return sum + (metrics?.conversions || 0);
+    }, 0);
+    const totalCampaignLeads = campaigns.reduce((sum, c) => {
+      const metrics = c.metrics as any;
+      return sum + (metrics?.leads || 0);
+    }, 0);
     const conversionRate = totalCampaignLeads > 0 ? (totalConversions / totalCampaignLeads * 100).toFixed(1) : "0.0";
 
     const avgROI = campaigns.length > 0 
-      ? Math.round(campaigns.reduce((sum, c) => sum + (c.metrics?.roi || 0), 0) / campaigns.length)
+      ? Math.round(campaigns.reduce((sum, c) => {
+          const metrics = c.metrics as any;
+          return sum + (metrics?.roi || 0);
+        }, 0) / campaigns.length)
       : 0;
 
     return {

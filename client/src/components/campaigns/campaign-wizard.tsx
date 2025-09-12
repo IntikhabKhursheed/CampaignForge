@@ -214,6 +214,7 @@ export default function CampaignWizard({ open, onOpenChange }: CampaignWizardPro
                         <Textarea 
                           placeholder="Describe your campaign goals and strategy" 
                           {...field} 
+                          value={field.value || ""}
                           data-testid="textarea-campaign-description"
                         />
                       </FormControl>
@@ -229,7 +230,7 @@ export default function CampaignWizard({ open, onOpenChange }: CampaignWizardPro
                     <FormItem>
                       <FormLabel>Target Audience</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Enterprise customers, SMB market" {...field} data-testid="input-target-audience" />
+                        <Input placeholder="e.g., Enterprise customers, SMB market" {...field} value={field.value || ""} data-testid="input-target-audience" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -248,6 +249,7 @@ export default function CampaignWizard({ open, onOpenChange }: CampaignWizardPro
                             type="number" 
                             placeholder="5000" 
                             {...field} 
+                            value={field.value || ""}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                             data-testid="input-budget"
                           />

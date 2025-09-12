@@ -112,7 +112,7 @@ export default function CampaignsTable() {
                         {campaign.name}
                       </p>
                       <p className="text-xs text-muted-foreground" data-testid={`campaign-created-${campaign.id}`}>
-                        Created {new Date(campaign.createdAt).toLocaleDateString()}
+                        Created {campaign.createdAt ? new Date(campaign.createdAt).toLocaleDateString() : 'No date'}
                       </p>
                     </div>
                   </td>
@@ -127,16 +127,16 @@ export default function CampaignsTable() {
                     </Badge>
                   </td>
                   <td className="p-4 text-sm text-foreground" data-testid={`campaign-leads-${campaign.id}`}>
-                    {campaign.metrics?.leads?.toLocaleString() || 0}
+                    {((campaign.metrics as any)?.leads)?.toLocaleString() || 0}
                   </td>
                   <td className="p-4 text-sm text-foreground" data-testid={`campaign-conversion-${campaign.id}`}>
-                    {campaign.metrics?.conversions 
-                      ? `${((campaign.metrics.conversions / (campaign.metrics.leads || 1)) * 100).toFixed(1)}%`
+                    {(campaign.metrics as any)?.conversions 
+                      ? `${(((campaign.metrics as any).conversions / ((campaign.metrics as any).leads || 1)) * 100).toFixed(1)}%`
                       : "0.0%"
                     }
                   </td>
                   <td className="p-4 text-sm font-medium text-accent" data-testid={`campaign-roi-${campaign.id}`}>
-                    +{campaign.metrics?.roi || 0}%
+                    +{(campaign.metrics as any)?.roi || 0}%
                   </td>
                   <td className="p-4">
                     <div className="flex items-center space-x-2">

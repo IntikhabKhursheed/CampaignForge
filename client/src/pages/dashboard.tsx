@@ -53,7 +53,7 @@ export default function Dashboard() {
 
       <div className="p-6 space-y-6">
         {/* Key Metrics Overview */}
-        <MetricsOverview data={metrics} />
+        <MetricsOverview data={metrics as any} />
 
         {/* Performance Chart and Recent Activities */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
