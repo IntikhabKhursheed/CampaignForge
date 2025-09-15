@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mail, UserPlus, Share2, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { Activity } from "@shared/schema";
+import type { Activity } from "@shared/models";
 
 const activityIcons = {
   campaign_launched: Mail,

@@ -19,14 +19,14 @@ import {
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertTaskSchema } from "@shared/schema";
+import { insertTaskSchema } from "@shared/models";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import type { Task } from "@shared/schema";
+import type { Task } from "@shared/models";
 
 const taskFormSchema = insertTaskSchema.extend({
   dueDate: z.string().optional(),
@@ -107,7 +107,7 @@ export default function Tasks() {
         ...data,
         dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
       };
-      return apiRequest("POST", "/api/tasks", payload);
+      return apiRequest("POST", "http://localhost:3000/api/tasks", payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });

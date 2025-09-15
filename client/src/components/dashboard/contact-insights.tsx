@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { Contact } from "@shared/schema";
+import type { Contact } from "@shared/models";
 
 export default function ContactInsights() {
   const { data: contacts, isLoading } = useQuery<Contact[]>({

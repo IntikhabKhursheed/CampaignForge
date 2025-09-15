@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Users, DollarSign, Target, BarChart3 } from "lucide-react";
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import type { Campaign, Contact } from "@shared/schema";
+import type { Campaign, Contact } from "@shared/models";
 
 // Mock data for charts - in production this would come from analytics API
 const performanceData = [

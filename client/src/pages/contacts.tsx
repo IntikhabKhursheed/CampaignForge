@@ -13,12 +13,12 @@ import { Progress } from "@/components/ui/progress";
 import { Search, Filter, User, Mail, Phone, Building, Plus, Edit, Trash2, Star } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertContactSchema } from "@shared/schema";
+import { insertContactSchema } from "@shared/models";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import type { Contact } from "@shared/schema";
+import type { Contact } from "@shared/models";
 
 const contactFormSchema = insertContactSchema.extend({
   leadScore: z.number().min(0).max(100).optional(),

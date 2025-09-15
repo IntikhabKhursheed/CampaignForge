@@ -1,10 +1,48 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+// @ts-ignore - memorystore has no types
+import MemoryStore from "memorystore";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// CORS configuration to allow frontend dev server to call the API with credentials
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173").split(",").map(s => s.trim());
+const corsOptions: cors.CorsOptions = {
+  origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    if (!origin) return callback(null, true); // same-origin or server-to-server
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+// Sessions (must come before routes)
+const SessionStore = MemoryStore(session);
+const sessionSecret = process.env.SESSION_SECRET || "dev-secret";
+app.use(
+  session({
+    store: new SessionStore({ checkPeriod: 86400000 }),
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: false, // set true behind HTTPS/proxy
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -60,12 +98,30 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
+  // Some environments block binding to fixed ports/hosts. Prefer ephemeral port on localhost.
+  const desiredPort = process.env.PORT ? parseInt(process.env.PORT, 10) : 0;
+  const host = process.env.HOST || "localhost";
+
+  server.on("error", (err: any) => {
+    // Fallback once to an ephemeral port if the requested one is not supported
+    if (desiredPort !== 0) {
+      log(`listen error on ${host}:${desiredPort} -> ${err?.code || err?.message}. Retrying on an ephemeral port...`);
+      server.listen({ port: 0, host }, () => {
+        const address = server.address();
+        const actualPort = typeof address === 'object' && address ? address.port : desiredPort;
+        log(`serving on port ${actualPort}`);
+      });
+    } else {
+      throw err;
+    }
+  });
+
   server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
+    port: desiredPort,
+    host,
   }, () => {
-    log(`serving on port ${port}`);
+    const address = server.address();
+    const actualPort = typeof address === 'object' && address ? address.port : desiredPort;
+    log(`serving on port ${actualPort}`);
   });
 })();

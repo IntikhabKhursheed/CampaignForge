@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, Eye, Edit, Trash2 } from "lucide-react";
-import type { Campaign } from "@shared/schema";
+import type { Campaign } from "@shared/models";
 
 const getCampaignTypeColor = (type: string) => {
   switch (type) {

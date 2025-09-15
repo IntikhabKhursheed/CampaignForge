@@ -4,8 +4,9 @@ import {
   type Contact, type InsertContact,
   type Task, type InsertTask,
   type Activity, type InsertActivity
-} from "@shared/schema";
+} from "../shared/models";
 import { randomUUID } from "crypto";
+import { getDb } from "./db";
 
 export interface IStorage {
   // Users
@@ -210,7 +211,7 @@ export class MemStorage implements IStorage {
     this.tasks.set(task3.id, task3);
 
     // Create sample activities
-    const activities = [
+    const activitySeed = [
       {
         id: randomUUID(),
         type: "campaign_launched",
@@ -249,7 +250,7 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    activities.forEach(activity => {
+    activitySeed.forEach(activity => {
       this.activities.set(activity.id, activity as Activity);
     });
   }
@@ -489,4 +490,297 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const db = await getDb();
+    const user = await db.collection<User>("users").findOne({ id });
+    return user ?? undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const db = await getDb();
+    const user = await db.collection<User>("users").findOne({ username });
+    return user ?? undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const db = await getDb();
+    const { role, ...rest } = insertUser;
+    const user: User = {
+      id: randomUUID(),
+      ...rest,
+      role: role ?? "founder",
+    } as User;
+    await db.collection<User>("users").insertOne(user);
+    return user;
+  }
+
+  // Campaigns
+  async getCampaigns(userId: string): Promise<Campaign[]> {
+    const db = await getDb();
+    return await db
+      .collection<Campaign>("campaigns")
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+  }
+
+  async getCampaign(id: string, userId: string): Promise<Campaign | undefined> {
+    const db = await getDb();
+    const campaign = await db.collection<Campaign>("campaigns").findOne({ id, userId });
+    return campaign ?? undefined;
+  }
+
+  async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
+    const db = await getDb();
+    const now = new Date();
+    const newCampaign: Campaign = {
+      id: randomUUID(),
+      name: campaign.name,
+      type: campaign.type,
+      status: campaign.status ?? "draft",
+      description: campaign.description ?? null,
+      targetAudience: campaign.targetAudience ?? null,
+      budget: campaign.budget ?? null,
+      startDate: campaign.startDate ?? null,
+      endDate: campaign.endDate ?? null,
+      createdAt: now,
+      updatedAt: now,
+      userId: campaign.userId,
+      metrics: campaign.metrics ?? {},
+    } as Campaign;
+    await db.collection<Campaign>("campaigns").insertOne(newCampaign);
+    return newCampaign;
+  }
+
+  async updateCampaign(id: string, campaign: Partial<InsertCampaign>, userId: string): Promise<Campaign | undefined> {
+    const db = await getDb();
+    const updates: Partial<Campaign> = {
+      name: campaign.name,
+      type: campaign.type,
+      status: campaign.status,
+      description: campaign.description,
+      targetAudience: campaign.targetAudience,
+      budget: campaign.budget,
+      startDate: campaign.startDate,
+      endDate: campaign.endDate,
+      metrics: campaign.metrics,
+      updatedAt: new Date(),
+    };
+    await db.collection<Campaign>("campaigns").updateOne({ id, userId }, { $set: updates });
+    const updated = await db.collection<Campaign>("campaigns").findOne({ id, userId });
+    return updated ?? undefined;
+  }
+
+  async deleteCampaign(id: string, userId: string): Promise<boolean> {
+    const db = await getDb();
+    const res = await db.collection("campaigns").deleteOne({ id, userId });
+    return res.deletedCount === 1;
+  }
+
+  // Contacts
+  async getContacts(userId: string): Promise<Contact[]> {
+    const db = await getDb();
+    return await db
+      .collection<Contact>("contacts")
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+  }
+
+  async getContact(id: string, userId: string): Promise<Contact | undefined> {
+    const db = await getDb();
+    const contact = await db.collection<Contact>("contacts").findOne({ id, userId });
+    return contact ?? undefined;
+  }
+
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const db = await getDb();
+    const now = new Date();
+    const newContact: Contact = {
+      id: randomUUID(),
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      email: contact.email,
+      phone: contact.phone ?? null,
+      company: contact.company ?? null,
+      position: contact.position ?? null,
+      leadScore: contact.leadScore ?? 0,
+      status: contact.status ?? "new",
+      source: contact.source ?? null,
+      tags: contact.tags ?? [],
+      notes: contact.notes ?? null,
+      createdAt: now,
+      updatedAt: now,
+      userId: contact.userId,
+    } as Contact;
+    await db.collection<Contact>("contacts").insertOne(newContact);
+    return newContact;
+  }
+
+  async updateContact(id: string, contact: Partial<InsertContact>, userId: string): Promise<Contact | undefined> {
+    const db = await getDb();
+    const updates: Partial<Contact> = {
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      email: contact.email,
+      phone: contact.phone,
+      company: contact.company,
+      position: contact.position,
+      leadScore: contact.leadScore,
+      status: contact.status,
+      source: contact.source,
+      tags: contact.tags,
+      notes: contact.notes,
+      updatedAt: new Date(),
+    };
+    await db.collection<Contact>("contacts").updateOne({ id, userId }, { $set: updates });
+    const updated = await db.collection<Contact>("contacts").findOne({ id, userId });
+    return updated ?? undefined;
+  }
+
+  async deleteContact(id: string, userId: string): Promise<boolean> {
+    const db = await getDb();
+    const res = await db.collection("contacts").deleteOne({ id, userId });
+    return res.deletedCount === 1;
+  }
+
+  // Tasks
+  async getTasks(userId: string): Promise<Task[]> {
+    const db = await getDb();
+    return await db
+      .collection<Task>("tasks")
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+  }
+
+  async getTask(id: string, userId: string): Promise<Task | undefined> {
+    const db = await getDb();
+    const task = await db.collection<Task>("tasks").findOne({ id, userId });
+    return task ?? undefined;
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const db = await getDb();
+    const now = new Date();
+    const newTask: Task = {
+      id: randomUUID(),
+      title: task.title,
+      description: task.description ?? null,
+      priority: task.priority ?? "medium",
+      status: task.status ?? "todo",
+      dueDate: task.dueDate ?? null,
+      assignedTo: task.assignedTo ?? null,
+      category: task.category ?? null,
+      campaignId: task.campaignId ?? null,
+      createdAt: now,
+      updatedAt: now,
+      userId: task.userId,
+    } as Task;
+    await db.collection<Task>("tasks").insertOne(newTask);
+    return newTask;
+  }
+
+  async updateTask(id: string, task: Partial<InsertTask>, userId: string): Promise<Task | undefined> {
+    const db = await getDb();
+    const updates: Partial<Task> = {
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.dueDate,
+      assignedTo: task.assignedTo,
+      category: task.category,
+      campaignId: task.campaignId,
+      updatedAt: new Date(),
+    };
+    await db.collection<Task>("tasks").updateOne({ id, userId }, { $set: updates });
+    const updated = await db.collection<Task>("tasks").findOne({ id, userId });
+    return updated ?? undefined;
+  }
+
+  async deleteTask(id: string, userId: string): Promise<boolean> {
+    const db = await getDb();
+    const res = await db.collection("tasks").deleteOne({ id, userId });
+    return res.deletedCount === 1;
+  }
+
+  // Activities
+  async getActivities(userId: string, limit: number = 20): Promise<Activity[]> {
+    const db = await getDb();
+    return await db
+      .collection<Activity>("activities")
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const db = await getDb();
+    const newActivity: Activity = {
+      id: randomUUID(),
+      createdAt: new Date(),
+      description: activity.description ?? null,
+      metadata: activity.metadata ?? {},
+      ...activity,
+    } as Activity;
+    await db.collection<Activity>("activities").insertOne(newActivity);
+    return newActivity;
+  }
+
+  // Analytics
+  async getDashboardMetrics(userId: string): Promise<any> {
+    const userCampaigns = await this.getCampaigns(userId);
+    const userContacts = await this.getContacts(userId);
+    const userTasks = await this.getTasks(userId);
+
+    const activeCampaigns = userCampaigns.filter(c => c.status === "active").length;
+    const totalLeads = userContacts.length;
+    const hotLeads = userContacts.filter(c => c.leadScore >= 80).length;
+    const warmLeads = userContacts.filter(c => c.leadScore >= 50 && c.leadScore < 80).length;
+    const coldLeads = userContacts.filter(c => c.leadScore < 50).length;
+
+    const totalCampaignLeads = userCampaigns.reduce((sum, campaign) => {
+      const metrics = campaign.metrics as any;
+      return sum + (metrics?.leads || 0);
+    }, 0);
+    
+    const totalConversions = userCampaigns.reduce((sum, campaign) => {
+      const metrics = campaign.metrics as any;
+      return sum + (metrics?.conversions || 0);
+    }, 0);
+    
+    const conversionRate = totalCampaignLeads > 0 ? (totalConversions / totalCampaignLeads * 100).toFixed(1) : "0.0";
+    const totalROI = userCampaigns.reduce((sum, campaign) => {
+      const metrics = campaign.metrics as any;
+      return sum + (metrics?.roi || 0);
+    }, 0);
+    const avgROI = userCampaigns.length > 0 ? (totalROI / userCampaigns.length).toFixed(1) : "0.0";
+    
+    return {
+      activeCampaigns,
+      totalLeads,
+      conversionRate: `${conversionRate}%`,
+      roi: `${avgROI}%`,
+      leadScores: {
+        hot: hotLeads,
+        warm: warmLeads,
+        cold: coldLeads,
+      },
+      growth: {
+        campaigns: "+12%",
+        leads: "+24%",
+        conversions: "+8%",
+        roi: "+15%",
+      },
+    };
+  }
+}
+
+export const storage = process.env.MONGODB_URI
+  ? new DatabaseStorage()
+  : new MemStorage();

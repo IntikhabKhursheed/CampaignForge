@@ -1,19 +1,69 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { 
-  insertCampaignSchema, 
-  insertContactSchema, 
-  insertTaskSchema, 
-  insertActivitySchema 
-} from "@shared/schema";
+import * as models from "../shared/models";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  const userId = "00000000-0000-0000-0000-000000000000"; // Mock user for demo
+  // Auth endpoints (session-based)
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password, name, email } = req.body as Record<string, string>;
+      if (!username || !password || !name || !email) {
+        return res.status(400).json({ error: "Missing fields" });
+      }
+      const existing = await storage.getUserByUsername(username);
+      if (existing) return res.status(409).json({ error: "User exists" });
+      const user = await storage.createUser({ username, password, name, email, role: "founder" });
+      (req as any).session.userId = user.id;
+      const { password: _pw, ...safe } = user as any;
+      res.json(safe);
+    } catch (e) {
+      res.status(500).json({ error: "Failed to register" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body as Record<string, string>;
+      if (!username || !password) return res.status(400).json({ error: "Missing credentials" });
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) return res.status(401).json({ error: "Invalid credentials" });
+      (req as any).session.userId = user.id;
+      const { password: _pw, ...safe } = user as any;
+      res.json(safe);
+    } catch (e) {
+      res.status(500).json({ error: "Failed to login" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      (req as any).session.destroy(() => {});
+      res.json({ ok: true });
+    } catch {
+      res.status(500).json({ error: "Failed to logout" });
+    }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const { password: _pw, ...safe } = user as any;
+      res.json(safe);
+    } catch {
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
 
   // Dashboard metrics
   app.get("/api/dashboard/metrics", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const metrics = await storage.getDashboardMetrics(userId);
       res.json(metrics);
     } catch (error) {
@@ -24,6 +74,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Campaign routes
   app.get("/api/campaigns", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const campaigns = await storage.getCampaigns(userId);
       res.json(campaigns);
     } catch (error) {
@@ -33,6 +85,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/campaigns/:id", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const campaign = await storage.getCampaign(req.params.id, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
@@ -45,7 +99,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/campaigns", async (req, res) => {
     try {
-      const validatedData = insertCampaignSchema.parse({ ...req.body, userId });
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const campaignSchema = models.insertCampaignSchema ?? z.object({
+        name: z.string(),
+        type: z.string(),
+        status: z.string().optional(),
+        description: z.string().optional().nullable(),
+        targetAudience: z.string().optional().nullable(),
+        budget: z.coerce.number().optional().nullable(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        userId: z.string(),
+        metrics: z.any().optional(),
+      });
+      const validatedData = campaignSchema.parse({ ...req.body, userId });
       const campaign = await storage.createCampaign(validatedData);
       
       // Create activity
@@ -65,7 +133,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/campaigns/:id", async (req, res) => {
     try {
-      const validatedData = insertCampaignSchema.partial().parse(req.body);
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const campaignUpdateSchema = (models.insertCampaignSchema ?? z.object({
+        name: z.string().optional(),
+        type: z.string().optional(),
+        status: z.string().optional(),
+        description: z.string().optional().nullable(),
+        targetAudience: z.string().optional().nullable(),
+        budget: z.coerce.number().optional().nullable(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        metrics: z.any().optional(),
+      })).partial();
+      const validatedData = campaignUpdateSchema.parse(req.body);
       const campaign = await storage.updateCampaign(req.params.id, validatedData, userId);
       if (!campaign) {
         return res.status(404).json({ error: "Campaign not found" });
@@ -78,6 +159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/campaigns/:id", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const success = await storage.deleteCampaign(req.params.id, userId);
       if (!success) {
         return res.status(404).json({ error: "Campaign not found" });
@@ -91,6 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Contact routes
   app.get("/api/contacts", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const contacts = await storage.getContacts(userId);
       res.json(contacts);
     } catch (error) {
@@ -100,6 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/contacts/:id", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const contact = await storage.getContact(req.params.id, userId);
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
@@ -112,7 +199,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/contacts", async (req, res) => {
     try {
-      const validatedData = insertContactSchema.parse({ ...req.body, userId });
+      const contactSchema = models.insertContactSchema ?? z.object({
+        firstName: z.string(),
+        lastName: z.string(),
+        email: z.string(),
+        phone: z.string().optional().nullable(),
+        company: z.string().optional().nullable(),
+        position: z.string().optional().nullable(),
+        leadScore: z.coerce.number().optional(),
+        status: z.string().optional(),
+        source: z.string().optional().nullable(),
+        tags: z.array(z.string()).optional(),
+        notes: z.string().optional().nullable(),
+        userId: z.string(),
+      });
+      const validatedData = contactSchema.parse({ ...req.body, userId });
       const contact = await storage.createContact(validatedData);
       res.status(201).json(contact);
     } catch (error) {
@@ -122,7 +223,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/contacts/:id", async (req, res) => {
     try {
-      const validatedData = insertContactSchema.partial().parse(req.body);
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const contactUpdateSchema = (models.insertContactSchema ?? z.object({
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        email: z.string().optional(),
+        phone: z.string().optional().nullable(),
+        company: z.string().optional().nullable(),
+        position: z.string().optional().nullable(),
+        leadScore: z.coerce.number().optional(),
+        status: z.string().optional(),
+        source: z.string().optional().nullable(),
+        tags: z.array(z.string()).optional(),
+        notes: z.string().optional().nullable(),
+      })).partial();
+      const validatedData = contactUpdateSchema.parse(req.body);
       const contact = await storage.updateContact(req.params.id, validatedData, userId);
       if (!contact) {
         return res.status(404).json({ error: "Contact not found" });
@@ -135,6 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/contacts/:id", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const success = await storage.deleteContact(req.params.id, userId);
       if (!success) {
         return res.status(404).json({ error: "Contact not found" });
@@ -148,6 +266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Task routes
   app.get("/api/tasks", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const tasks = await storage.getTasks(userId);
       res.json(tasks);
     } catch (error) {
@@ -157,6 +277,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tasks/:id", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const task = await storage.getTask(req.params.id, userId);
       if (!task) {
         return res.status(404).json({ error: "Task not found" });
@@ -168,18 +290,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/tasks", async (req, res) => {
+    console.log("Task payload:", req.body);
+
     try {
-      const validatedData = insertTaskSchema.parse({ ...req.body, userId });
-      const task = await storage.createTask(validatedData);
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const taskSchema = models.insertTaskSchema ?? z.object({
+        title: z.string(),
+        description: z.string().optional().nullable(),
+        priority: z.string().optional(),
+        status: z.string().optional(),
+        dueDate: z.string().optional().nullable(),
+        assignedTo: z.string().optional().nullable(),
+        category: z.string().optional().nullable(),
+        campaignId: z.string().optional().nullable(),
+        userId: z.string(),
+      });
+      const parsed = taskSchema.safeParse({ ...req.body, userId });
+      if (!parsed.success) {
+        console.error("Validation failed for POST /api/tasks", {
+          body: req.body,
+          issues: parsed.error.issues,
+        });
+        return res.status(400).json({ error: "Invalid task data", issues: parsed.error.issues });
+      }
+      const task = await storage.createTask(parsed.data);
       res.status(201).json(task);
     } catch (error) {
+      console.error("POST /api/tasks failed:", error);
       res.status(400).json({ error: "Invalid task data" });
     }
   });
 
   app.put("/api/tasks/:id", async (req, res) => {
     try {
-      const validatedData = insertTaskSchema.partial().parse(req.body);
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      const taskUpdateSchema = (models.insertTaskSchema ?? z.object({
+        title: z.string().optional(),
+        description: z.string().optional().nullable(),
+        priority: z.string().optional(),
+        status: z.string().optional(),
+        dueDate: z.string().optional().nullable(),
+        assignedTo: z.string().optional().nullable(),
+        category: z.string().optional().nullable(),
+        campaignId: z.string().optional().nullable(),
+      })).partial();
+      const validatedData = taskUpdateSchema.parse(req.body);
       const task = await storage.updateTask(req.params.id, validatedData, userId);
       if (!task) {
         return res.status(404).json({ error: "Task not found" });
@@ -192,6 +349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/tasks/:id", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const success = await storage.deleteTask(req.params.id, userId);
       if (!success) {
         return res.status(404).json({ error: "Task not found" });
@@ -205,6 +364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Activity routes
   app.get("/api/activities", async (req, res) => {
     try {
+      const userId = (req as any).session?.userId as string | undefined;
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const activities = await storage.getActivities(userId, limit);
       res.json(activities);
@@ -215,7 +376,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/activities", async (req, res) => {
     try {
-      const validatedData = insertActivitySchema.parse({ ...req.body, userId });
+      const activitySchema = models.insertActivitySchema ?? z.object({
+        type: z.string(),
+        title: z.string(),
+        description: z.string().optional().nullable(),
+        metadata: z.any().optional(),
+        userId: z.string(),
+      });
+      const validatedData = activitySchema.parse({ ...req.body, userId });
       const activity = await storage.createActivity(validatedData);
       res.status(201).json(activity);
     } catch (error) {

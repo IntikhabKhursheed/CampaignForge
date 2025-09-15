@@ -22,29 +22,29 @@ export default function MetricsOverview({ data }: MetricsOverviewProps) {
   const metrics = [
     {
       title: "Active Campaigns",
-      value: data.activeCampaigns,
-      growth: data.growth.campaigns,
+      value: data?.activeCampaigns,
+      growth: data?.growth.campaigns,
       icon: TrendingUp,
       color: "primary"
     },
     {
       title: "Total Leads",
-      value: data.totalLeads.toLocaleString(),
-      growth: data.growth.leads,
+      value: data?.totalLeads.toLocaleString(),
+      growth: data?.growth.leads,
       icon: Users,
       color: "accent"
     },
     {
       title: "Conversion Rate",
-      value: data.conversionRate,
-      growth: data.growth.conversions,
+      value: data?.conversionRate,
+      growth: data?.growth.conversions,
       icon: Percent,
       color: "chart-3"
     },
     {
       title: "Monthly ROI",
-      value: data.roi,
-      growth: data.growth.roi,
+      value: data?.roi,
+      growth: data?.growth.roi,
       icon: DollarSign,
       color: "destructive"
     }

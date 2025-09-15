@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Filter, Eye, Edit } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { Campaign } from "@shared/schema";
+import type { Campaign } from "@shared/models";
 
 const getCampaignTypeColor = (type: string) => {
   switch (type) {

@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
-import type { Task } from "@shared/schema";
+import type { Task } from "@shared/models";
 
 const getPriorityColor = (priority: string) => {
   switch (priority) {
