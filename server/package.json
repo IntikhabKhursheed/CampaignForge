@@ -11,6 +11,7 @@
     "db:push": "echo 'No-op: Drizzle removed'"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^4.21.2",
@@ -20,6 +21,7 @@
     "mongoose": "^8.18.1",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
+    "uuid": "^13.0.0",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"

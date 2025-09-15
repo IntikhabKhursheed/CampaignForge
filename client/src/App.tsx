@@ -33,22 +33,51 @@ function Router() {
               </div>
             )} />
 
-            {/* Protected app shell with sidebar */}
+            {/* Protected routes with sidebar */}
+            <Route path="/campaigns" component={() => (
+              <div className="min-h-screen flex">
+                <Sidebar />
+                <main className="flex-1 overflow-auto">
+                  <ProtectedRoute component={Campaigns} />
+                </main>
+              </div>
+            )} />
+            <Route path="/contacts" component={() => (
+              <div className="min-h-screen flex">
+                <Sidebar />
+                <main className="flex-1 overflow-auto">
+                  <ProtectedRoute component={Contacts} />
+                </main>
+              </div>
+            )} />
+            <Route path="/analytics" component={() => (
+              <div className="min-h-screen flex">
+                <Sidebar />
+                <main className="flex-1 overflow-auto">
+                  <ProtectedRoute component={Analytics} />
+                </main>
+              </div>
+            )} />
+            <Route path="/tasks" component={() => (
+              <div className="min-h-screen flex">
+                <Sidebar />
+                <main className="flex-1 overflow-auto">
+                  <ProtectedRoute component={Tasks} />
+                </main>
+              </div>
+            )} />
+
+            {/* Dashboard route - must come after specific routes */}
             <Route path="/" component={() => (
               <div className="min-h-screen flex">
                 <Sidebar />
                 <main className="flex-1 overflow-auto">
-                  <Switch>
-                    <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-                    <Route path="/campaigns" component={() => <ProtectedRoute component={Campaigns} />} />
-                    <Route path="/contacts" component={() => <ProtectedRoute component={Contacts} />} />
-                    <Route path="/analytics" component={() => <ProtectedRoute component={Analytics} />} />
-                    <Route path="/tasks" component={() => <ProtectedRoute component={Tasks} />} />
-                    <Route component={NotFound} />
-                  </Switch>
+                  <ProtectedRoute component={Dashboard} />
                 </main>
               </div>
             )} />
+
+            <Route component={NotFound} />
           </Switch>
           <Toaster />
         </TooltipProvider>
