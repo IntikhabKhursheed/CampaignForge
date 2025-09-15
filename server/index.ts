@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // CORS configuration to allow frontend dev server to call the API with credentials
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173").split(",").map(s => s.trim());
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174,http://localhost:5175").split(",").map(s => s.trim());
 const corsOptions: cors.CorsOptions = {
   origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     if (!origin) return callback(null, true); // same-origin or server-to-server
