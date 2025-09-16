@@ -50,9 +50,9 @@ VITE_API_BASE=https://your-backend-domain.com
 
 ## Database Setup
 
-Your MongoDB Atlas connection is already configured:
-- URI: `mongodb+srv://intikhabkhursheed:ybRzQq9AQgkayDKP@contentcluster.3akr3bt.mongodb.net/`
-- Database: `Content-calender-saas`
+Configure your MongoDB connection in the server `.env` file:
+- URI: `your-mongodb-connection-string`
+- Database: `your-database-name`
 
 To seed the database with sample data:
 ```bash
